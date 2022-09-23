@@ -23,8 +23,8 @@ pub(crate) trait Merge: Sized {
 }
 
 macro_rules! impl_merge {
-    ($ty:ident { merge: $($merge_field:ident)*, or: $($or_field:ident)*, }) => {
-        impl Merge for $ty {
+    ($ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)? { merge: $($merge_field:ident)*, or: $($or_field:ident)*, }) => {
+        impl $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? Merge for $ty $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? {
             fn merge(self, other: Self) -> Self {
                 $ty {
                     $($merge_field: self.$merge_field.merge(other.$merge_field),)*
@@ -33,8 +33,8 @@ macro_rules! impl_merge {
             }
         }
     };
-    ($ty:ident { or: $($or_field:ident)*, }) => {
-        impl_merge!( $ty { merge: , or: $($or_field)*, });
+    ($ty:ident $(< $( $lt:tt $( : $clt:tt $(+ $dlt:tt )* )? ),+ >)? { or: $($or_field:ident)*, }) => {
+        impl_merge!( $ty $(< $( $lt $( : $clt $(+ $dlt )* )? ),+ >)? { merge: , or: $($or_field)*, });
     };
 }
 
@@ -65,7 +65,7 @@ impl Merge for Option<Box<Schema>> {
 
 impl_merge!(SchemaObject {
     merge: extensions instance_type enum_values
-        metadata subschemas number string array object,
+        metadata subschemas number integer string array object,
     or: format const_value reference,
 });
 
@@ -88,7 +88,7 @@ impl_merge!(SubschemaValidation {
     or: all_of any_of one_of not if_schema then_schema else_schema,
 });
 
-impl_merge!(NumberValidation {
+impl_merge!(NumberValidation<T> {
     or: multiple_of maximum exclusive_maximum minimum exclusive_minimum,
 });
 

@@ -54,6 +54,7 @@ pub struct Inner {
     x: i32,
 }
 
+
 #[test]
 fn validate() -> TestResult {
     test_default_generated_schema::<Struct>("validate")

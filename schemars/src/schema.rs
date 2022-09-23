@@ -145,9 +145,12 @@ pub struct SchemaObject {
     /// Properties of the [`SchemaObject`] which define validation assertions in terms of other schemas.
     #[serde(flatten, deserialize_with = "skip_if_default")]
     pub subschemas: Option<Box<SubschemaValidation>>,
+    /// Properties of the [`SchemaObject`] which define validation assertions for integers.
+    #[serde(flatten, deserialize_with = "skip_if_default")]
+    pub integer: Option<Box<NumberValidation<i64>>>,
     /// Properties of the [`SchemaObject`] which define validation assertions for numbers.
     #[serde(flatten, deserialize_with = "skip_if_default")]
-    pub number: Option<Box<NumberValidation>>,
+    pub number: Option<Box<NumberValidation<f64>>>,
     /// Properties of the [`SchemaObject`] which define validation assertions for strings.
     #[serde(flatten, deserialize_with = "skip_if_default")]
     pub string: Option<Box<StringValidation>>,
@@ -244,7 +247,8 @@ impl SchemaObject {
 
     get_or_insert_default_fn!(metadata, Metadata);
     get_or_insert_default_fn!(subschemas, SubschemaValidation);
-    get_or_insert_default_fn!(number, NumberValidation);
+    get_or_insert_default_fn!(number, NumberValidation<f64>);
+    get_or_insert_default_fn!(integer, NumberValidation<i64>);
     get_or_insert_default_fn!(string, StringValidation);
     get_or_insert_default_fn!(array, ArrayValidation);
     get_or_insert_default_fn!(object, ObjectValidation);
@@ -357,32 +361,32 @@ pub struct SubschemaValidation {
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "impl_json_schema", derive(JsonSchema))]
 #[serde(rename_all = "camelCase", default)]
-pub struct NumberValidation {
+pub struct NumberValidation<T> {
     /// The `multipleOf` keyword.
     ///
     /// See [JSON Schema Validation 6.2.1. "multipleOf"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.1).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub multiple_of: Option<f64>,
+    pub multiple_of: Option<T>,
     /// The `maximum` keyword.
     ///
     /// See [JSON Schema Validation 6.2.2. "maximum"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.2).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<f64>,
+    pub maximum: Option<T>,
     /// The `exclusiveMaximum` keyword.
     ///
     /// See [JSON Schema Validation 6.2.3. "exclusiveMaximum"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.3).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub exclusive_maximum: Option<f64>,
+    pub exclusive_maximum: Option<T>,
     /// The `minimum` keyword.
     ///
     /// See [JSON Schema Validation 6.2.4. "minimum"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.4).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<f64>,
+    pub minimum: Option<T>,
     /// The `exclusiveMinimum` keyword.
     ///
     /// See [JSON Schema Validation 6.2.5. "exclusiveMinimum"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.5).
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub exclusive_minimum: Option<f64>,
+    pub exclusive_minimum: Option<T>,
 }
 
 /// Properties of a [`SchemaObject`] which define validation assertions for strings.
