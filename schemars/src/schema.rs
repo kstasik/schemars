@@ -7,7 +7,7 @@ use crate as schemars;
 #[cfg(feature = "impl_json_schema")]
 use crate::JsonSchema;
 use crate::{Map, Set};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::{MapAccess, Visitor}};
 use serde_json::Value;
 use std::ops::Deref;
 
@@ -146,10 +146,10 @@ pub struct SchemaObject {
     #[serde(flatten, deserialize_with = "skip_if_default")]
     pub subschemas: Option<Box<SubschemaValidation>>,
     /// Properties of the [`SchemaObject`] which define validation assertions for integers.
-    #[serde(flatten, deserialize_with = "skip_if_default")]
+    #[serde(flatten, deserialize_with = "skip_if_default_or_error")]
     pub integer: Option<Box<NumberValidation<i64>>>,
     /// Properties of the [`SchemaObject`] which define validation assertions for numbers.
-    #[serde(flatten, deserialize_with = "skip_if_default")]
+    #[serde(flatten, deserialize_with = "skip_if_default_or_error")]
     pub number: Option<Box<NumberValidation<f64>>>,
     /// Properties of the [`SchemaObject`] which define validation assertions for strings.
     #[serde(flatten, deserialize_with = "skip_if_default")]
@@ -189,6 +189,64 @@ where
         Ok(None)
     } else {
         Ok(Some(Box::new(value)))
+    }
+}
+
+struct MyMapVisitor;
+
+impl<'de> Visitor<'de> for MyMapVisitor {
+    // The type that our Visitor is going to produce.
+    type Value = ();
+
+    // Format a message stating what data this Visitor expects to receive.
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        formatter.write_str("a very special map")
+    }
+
+    // Deserialize MyMap from an abstract "map" provided by the
+    // Deserializer. The MapAccess input is a callback provided by
+    // the Deserializer to let us see each entry in the map.
+    fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+    where
+        M: MapAccess<'de>,
+    {
+
+        let asd: serde_json::Value = access.next_value()?;
+
+        println!("xxx: {:?}", asd);
+        
+
+        Ok(())
+    }
+
+    
+}
+
+
+
+fn skip_if_default_or_error<'de, D, T>(deserializer: D) -> Result<Option<Box<T>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de> + Default + PartialEq,
+{
+
+    let asd = deserializer.deserialize_any(MyMapVisitor);
+    println!("asd: {:?}", asd);
+
+
+
+
+    
+    match T::deserialize(deserializer) {
+        Ok(value) => if value == T::default() {
+            Ok(None)
+        } else {
+            Ok(Some(Box::new(value)))
+        }
+        Err(err) => {
+            println!("err : {:?}", err);
+            Ok(None)
+        }
     }
 }
 
@@ -366,6 +424,7 @@ pub struct NumberValidation<T> {
     ///
     /// See [JSON Schema Validation 6.2.1. "multipleOf"](https://tools.ietf.org/html/draft-handrews-json-schema-validation-02#section-6.2.1).
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(bound(deserialize = "T: PartialEq"))]
     pub multiple_of: Option<T>,
     /// The `maximum` keyword.
     ///

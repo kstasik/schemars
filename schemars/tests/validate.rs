@@ -1,18 +1,18 @@
 mod util;
-use schemars::JsonSchema;
+use schemars::{JsonSchema, schema::RootSchema};
 use std::collections::HashMap;
 use util::*;
 
 // In real code, this would typically be a Regex, potentially created in a `lazy_static!`.
 static STARTS_WITH_HELLO: &'static str = r"^[Hh]ello\b";
 
-const MIN: u32 = 1;
-const MAX: u32 = 1000;
+const MIN: f32 = 1.0;
+const MAX: f32 = 1000.0;
 
 #[allow(dead_code)]
 #[derive(JsonSchema)]
 pub struct Struct {
-    #[validate(range(min = 0.01, max = 100))]
+    #[validate(range(min = 0.01, max = 100.0))]
     min_max: f32,
     #[validate(range(min = "MIN", max = "MAX"))]
     min_max2: f32,
@@ -54,6 +54,39 @@ pub struct Inner {
     x: i32,
 }
 
+#[test]
+fn test_des() {
+    let asd = serde_json::json!({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Struct",
+        "type": "number",
+        "format": "float",
+        "multipleOf": 2.2,
+        "maximum": 100.1,
+        "minimum": 0.01
+    });
+
+    let expected: RootSchema = serde_json::from_value(asd).unwrap();
+
+    println!("expected: {:?}", expected);
+
+    assert_eq!(expected.schema.number.unwrap().maximum, Some(100.1));
+
+
+    let asd2 = serde_json::json!({
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Struct",
+        "type": "number",
+        "format": "float",
+        "maximum": 100,
+        "minimum": 2
+    });
+
+    let expected: RootSchema = serde_json::from_value(asd2).unwrap();
+
+    println!("expected: {:?}", expected);
+
+}
 
 #[test]
 fn validate() -> TestResult {
